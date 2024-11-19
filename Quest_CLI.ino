@@ -1,4 +1,5 @@
 /*******************************************************************************
+PINS ARENT DEFINED
    Quest institute command line interface and testing operations
    20220608 hai - created and begin consolidating different testing programs
    Added scani2c,

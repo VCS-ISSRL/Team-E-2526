@@ -135,15 +135,9 @@ void Flying() {
     //
     if ((millis() - TimeEvent1) > TimeEvent1_time) {
       TimeEvent1 = millis();                 //yes is time now reset TimeEvent1
-      //test
-      digitalWrite(led, HIGH);
-      digitalWrite(vib1, HIGH);
-      digitalWrite(vib2, HIGH);
-      cmd_takeSphoto();
-      delay(2000);
-      digitalWrite(led, LOW);
-      digitalWrite(vib1, LOW);
-      digitalWrite(vib2, LOW);
+      //CODE GOES HERE
+      
+      
           //  Take a photo using the serial c329 camera and place file name in Queue
     }                                               //end of TimeEvent1_time
     //------------------------------------------------------------------

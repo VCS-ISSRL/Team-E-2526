@@ -136,7 +136,30 @@ void Flying() {
     if ((millis() - TimeEvent1) > TimeEvent1_time) {
       TimeEvent1 = millis();                 //yes is time now reset TimeEvent1
       //CODE GOES HERE
-      
+        delay(24 * 60 * 60 * 1000); //24 hours
+        digitalWrite(A1, HIGH);
+
+        while(true){
+            int sensorValue = analogRead(A0);
+            float voltage = sensorValue * (5.0 / 1023.0);
+            float tempC = (voltage - 0.5) * 100;  // Not sure if this is right
+            if(tempC >= 48.0){
+              //pump water into main chamber
+              digitalWrite(10, HIGH);
+              delay(5000);  //How long run pump???  (We have defined minute/hour variables I didn't use cuz idk if it works but I would assume it does)
+              digitalWrite(10, LOW);x`
+              //turn in LED
+              digialWrite(11, HIGH);
+              //Turn on vibration motors
+              digitalWrite(13, HIGH);
+              digitalWrite(A6, HIGH);
+              delay(1000 * 60);
+              digitalWrite(13, LOW);
+              digitalWrite(A6, LOW);
+              //take picture
+              
+            }
+        }
       
           //  Take a photo using the serial c329 camera and place file name in Queue
     }                                               //end of TimeEvent1_time

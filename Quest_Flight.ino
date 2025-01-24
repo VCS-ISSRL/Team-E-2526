@@ -39,13 +39,21 @@ Files Required to make a complete program -
 #include "Quest_Flight.h"
 #include "Quest_CLI.h"
 
+//thermister code
+int thermistorPin = A0;
+double thermistorReading;
+double tempK;
+double tempC;
+double tempF;
+bool heatingDone = false;
+
 //////////////////////////////////////////////////////////////////////////
 //    This defines the timers used to control flight operations
 //////////////////////////////////////////////////////////////////////////
 //  Fast clock --- 1 hour = 5 min = 1/12 of an  hour
 //     one millie -- 1ms
 //
-#define SpeedFactor 30    // = times faster
+#define SpeedFactor 10000    // = times faster
 //
 //
 //////////////////////////////////////////////////////////////////////////
@@ -56,12 +64,17 @@ Files Required to make a complete program -
 //
 //
 #define TimeEvent1_time     ((one_min * 5) / SpeedFactor)      //take a photo time (edited for test)
+#define TimeEvent2_time     ((one_min * 5) / SpeedFactor)      //How long pump goes for (IMPORTANT EDIT)
+#define TimeEvent3_time     ((one_min * 5) / SpeedFactor)     //How long vibration motors go for (IMPORTANT EDIT)
+#define TimeEvent4_time     ((one_hour * 24) / SpeedFactor)
+#define dayCounter_time     ((one_hour * 24) / SpeedFactor)
+int dayCount = 0;
 #define Sensor1time         ((one_min * 15) / SpeedFactor)      //Time to make Sensor1 readings 
 #define Sensor2time         ((one_sec * 20)  / SpeedFactor) 
 //
   int sensor1count = 0;     //counter of times the sensor has been accessed
   int sensor2count = 0;     //counter of times the sensor has been accessed
-  int State =   0;          //FOR TESTING ONLY WILL SWITCH FROM SPI CAMERA TO SERIAL CAMERA EVERY HOUR
+  int State = 0;          //FOR TESTING ONLY WILL SWITCH FROM SPI CAMERA TO SERIAL CAMERA EVERY HOUR
 //
 ///////////////////////////////////////////////////////////////////////////
 /**
@@ -76,6 +89,10 @@ void Flying() {
   Serial.println("\n\rRun flight program\n\r");
   //
   uint32_t TimeEvent1 = millis();               //set TimeEvent1 to effective 0
+  uint32_t dayCounter = millis();
+  uint32_t TimeEvent4 = millis();
+  uint32_t TimeEvent2 = millis();
+  uint32_t TimeEvent3 = millis();
   uint32_t Sensor1Timer = millis();             //clear sensor1Timer to effective 0
   uint32_t Sensor2Timer = millis();             //clear sensor1Timer to effective 0
   uint32_t Sensor2Deadmillis = millis();        //clear mills for difference
@@ -86,7 +103,7 @@ void Flying() {
   //*****************************************************************
   //   Here to set up flight conditions i/o pins, atod, and other special condition
   //   of your program
-  //
+  Serial.begin(9600);
   //
   //
   //******************************************************************
@@ -133,36 +150,51 @@ void Flying() {
     //  this test if TimeEvent1 time has come
     //  See above for TimeEvent1_time settings between this event
     //
-    if ((millis() - TimeEvent1) > TimeEvent1_time) {
-      TimeEvent1 = millis();                 //yes is time now reset TimeEvent1
+    if(millis() - dayCounter > dayCounter_time){
+      dayCount++;
+      dayCounter = millis();
+    }
+    if ((millis() - TimeEvent1) > TimeEvent1_time) {  //make sure this runs only once
+      //TimeEvent1 = millis();                 //yes is time now reset TimeEvent1
       //CODE GOES HERE
-        delay(24 * 60 * 60 * 1000); //24 hours
-        digitalWrite(A1, HIGH);
-
-        while(true){
-            int sensorValue = analogRead(A0);
-            float voltage = sensorValue * (5.0 / 1023.0);
-            float tempC = (voltage - 0.5) * 100;  // Not sure if this is right
-            if(tempC >= 48.0){
-              //pump water into main chamber
-              digitalWrite(10, HIGH);
-              delay(5000);  //How long run pump???  (We have defined minute/hour variables I didn't use cuz idk if it works but I would assume it does)
-              digitalWrite(10, LOW);x`
-              //turn in LED
-              digialWrite(11, HIGH);
-              //Turn on vibration motors
-              digitalWrite(13, HIGH);
-              digitalWrite(A6, HIGH);
-              delay(1000 * 60);
-              digitalWrite(13, LOW);
-              digitalWrite(A6, LOW);
-              //take picture
-              
-            }
-        }
-      
+        //Heating Function
+        digitalWrite(A1, HIGH); //heating
+        heatingDone = true;
           //  Take a photo using the serial c329 camera and place file name in Queue
+    }
+    thermistorReading = analogRead(thermistorPin);
+    tempK = log(10000.0 / ((1024.0 / thermistorReading - 1)));
+    tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK)) * tempK);
+    tempC = tempK - 273.15;
+    Serial.println(tempF);
+    delay(100); //very sus delay here, might offset timing
+    if(heatingDone && tempC >= 48){
+      digitalWrite(A1, LOW); //Heating off
+      digitalWrite(IO4, HIGH); //Start pump
+      TimeEvent2 = millis();
+    }
+    if ((millis() - TimeEvent2) > TimeEvent2_time){
+      digitalWrite(IO4, LOW); //turn off pump
+      digitalWrite(IO5, HIGH); //Turn on LED
+      digitalWrite(IO1, HIGH); //Turn on Vibration motors
+      digitalWrite(IO0, HIGH); //Motor #2
+      TimeEvent3 = millis();
+    }
+    if ((millis() - TimeEvent3) > TimeEvent3_time){
+      digitalWrite(IO1, LOW);
+      digitalWrite(IO0, LOW);
+      cmd_takeSphoto();
+    }
+    if((millis() - TimeEvent4) > TimeEvent4_time){  //Remember to iantialize!!  (This is badly coded, should still work)
+      if(dayCount >= 3){ //CHANGE THIS
+        cmd_takeSphoto();
+        TimeEvent4 = millis();
+      }else{
+      }
     }                                               //end of TimeEvent1_time
+    if(millis() > 2736000000){
+      break;
+    }
     //------------------------------------------------------------------
     //
 //*******************************************************************************

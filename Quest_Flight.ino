@@ -184,15 +184,17 @@ void Flying() {
       digitalWrite(IO1, LOW);
       digitalWrite(IO0, LOW);
       cmd_takeSphoto();
+      Serial.write("photo taken");
     }
     if((millis() - TimeEvent4) > TimeEvent4_time){  //Remember to iantialize!!  (This is badly coded, should still work)
       if(dayCount >= 3){ //CHANGE THIS
         cmd_takeSphoto();
         TimeEvent4 = millis();
+        Serial.write("photo taken");
       }else{
       }
     }                                               //end of TimeEvent1_time
-    if(millis() > 2736000000){
+    if(millis() > 3456000000){
       break;
     }
     //------------------------------------------------------------------

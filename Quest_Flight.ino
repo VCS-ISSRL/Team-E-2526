@@ -166,7 +166,8 @@ void Flying() {
     tempK = log(10000.0 / ((1024.0 / thermistorReading - 1)));
     tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK)) * tempK);
     tempC = tempK - 273.15;
-    Serial.println(tempF);
+    add2text(tempC, 0, 0);
+    Serial.println(tempC);
     delay(100); //very sus delay here, might offset timing
     if(heatingDone && tempC >= 48){
       digitalWrite(A1, LOW); //Heating off
@@ -190,7 +191,7 @@ void Flying() {
       if(dayCount >= 3){ //CHANGE THIS
         cmd_takeSphoto();
         TimeEvent4 = millis();
-        Serial.write("photo taken");
+        Serial.println("photo taken");
       }else{
       }
     }                                               //end of TimeEvent1_time

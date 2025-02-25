@@ -53,7 +53,7 @@ bool heatingDone = false;
 //  Fast clock --- 1 hour = 5 min = 1/12 of an  hour
 //     one millie -- 1ms
 //
-#define SpeedFactor 10000    // = times faster
+#define SpeedFactor 160    // = times faster
 //
 //
 //////////////////////////////////////////////////////////////////////////
@@ -166,8 +166,8 @@ void Flying() {
     tempK = log(10000.0 / ((1024.0 / thermistorReading - 1)));
     tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK)) * tempK);
     tempC = tempK - 273.15;
-    add2text(tempC, 0, 0);
-    Serial.println(tempC);
+    Serial.println(tempF);
+    add2text(tempF, 0, 0);
     delay(100); //very sus delay here, might offset timing
     if(heatingDone && tempC >= 48){
       digitalWrite(A1, LOW); //Heating off
@@ -185,17 +185,15 @@ void Flying() {
       digitalWrite(IO1, LOW);
       digitalWrite(IO0, LOW);
       cmd_takeSphoto();
-      Serial.write("photo taken");
     }
     if((millis() - TimeEvent4) > TimeEvent4_time){  //Remember to iantialize!!  (This is badly coded, should still work)
       if(dayCount >= 3){ //CHANGE THIS
         cmd_takeSphoto();
         TimeEvent4 = millis();
-        Serial.println("photo taken");
       }else{
       }
     }                                               //end of TimeEvent1_time
-    if(millis() > 3456000000){
+    if(millis() > 2736000000){
       break;
     }
     //------------------------------------------------------------------

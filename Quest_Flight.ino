@@ -67,7 +67,7 @@ bool failsafe = true;
 #define TimeEvent1_time     ((one_min * 5) / SpeedFactor)      //take a photo time (edited for test)
 #define TimeEvent2_time     ((one_min * 5) / SpeedFactor)      //How long pump goes for (IMPORTANT EDIT)
 #define TimeEvent3_time     ((one_min * 5) / SpeedFactor)     //How long vibration motors go for (IMPORTANT EDIT)
-#define TimeEvent4_time     ((one_hour * 24) / SpeedFactor)
+#define TimeEvent4_time     ((one_min * 15) / SpeedFactor)
 #define dayCounter_time     ((one_hour * 24) / SpeedFactor)
 int dayCount = 0;
 #define Sensor1time         ((one_min * 15) / SpeedFactor)      //Time to make Sensor1 readings 
@@ -167,6 +167,7 @@ void Flying() {
     }
     if(failsafe){
       failsafe_time = millis();
+      failsafe = false;
     }
     thermistorReading = analogRead(thermistorPin);
     tempK = log(10000.0 / ((1024.0 / thermistorReading - 1)));
@@ -174,7 +175,7 @@ void Flying() {
     tempC = tempK - 273.15;
     Serial.println(tempF);
     add2text(tempF, 0, 0);
-    delay(100); //very sus delay here, might offset timing
+    //do we need a delay?
     if((heatingDone && tempC >= 48) || (millis() - failsafe_time >= one_min * 30)){
       digitalWrite(A1, LOW); //Heating off
       digitalWrite(IO4, HIGH); //Start pump
@@ -191,12 +192,11 @@ void Flying() {
       digitalWrite(IO1, LOW);
       digitalWrite(IO0, LOW);
       cmd_takeSpiphoto();
-    }
+  } 
     if((millis() - TimeEvent4) > TimeEvent4_time){  //Remember to iantialize!!  (This is badly coded, should still work)
-      if(dayCount >= 3){ //CHANGE THIS
+      if(true){//CHANGE THIS
         cmd_takeSpiphoto();
         TimeEvent4 = millis();
-      }else{
       }
     }                                               //end of TimeEvent1_time
     if(millis() > 2736000000){

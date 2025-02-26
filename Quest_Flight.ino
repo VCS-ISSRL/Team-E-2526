@@ -46,6 +46,7 @@ double tempK;
 double tempC;
 double tempF;
 bool heatingDone = false;
+bool failsafe = true;
 
 //////////////////////////////////////////////////////////////////////////
 //    This defines the timers used to control flight operations
@@ -91,6 +92,7 @@ void Flying() {
   uint32_t TimeEvent1 = millis();               //set TimeEvent1 to effective 0
   uint32_t dayCounter = millis();
   uint32_t TimeEvent4 = millis();
+  uint32_t failsafe_time = millis();
   uint32_t TimeEvent2 = millis();
   uint32_t TimeEvent3 = millis();
   uint32_t Sensor1Timer = millis();             //clear sensor1Timer to effective 0
@@ -160,7 +162,11 @@ void Flying() {
         //Heating Function
         digitalWrite(A1, HIGH); //heating
         heatingDone = true;
+        cmd_takeSphoto();
           //  Take a photo using the serial c329 camera and place file name in Queue
+    }
+    if(failsafe){
+      failsafe_time = millis();
     }
     thermistorReading = analogRead(thermistorPin);
     tempK = log(10000.0 / ((1024.0 / thermistorReading - 1)));
@@ -169,7 +175,7 @@ void Flying() {
     Serial.println(tempF);
     add2text(tempF, 0, 0);
     delay(100); //very sus delay here, might offset timing
-    if(heatingDone && tempC >= 48){
+    if((heatingDone && tempC >= 48) || (millis() - failsafe_time >= one_min * 30)){
       digitalWrite(A1, LOW); //Heating off
       digitalWrite(IO4, HIGH); //Start pump
       TimeEvent2 = millis();

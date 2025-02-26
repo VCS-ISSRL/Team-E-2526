@@ -184,11 +184,11 @@ void Flying() {
     if ((millis() - TimeEvent3) > TimeEvent3_time){
       digitalWrite(IO1, LOW);
       digitalWrite(IO0, LOW);
-      cmd_takeSphoto();
+      cmd_takeSpiphoto();
     }
     if((millis() - TimeEvent4) > TimeEvent4_time){  //Remember to iantialize!!  (This is badly coded, should still work)
       if(dayCount >= 3){ //CHANGE THIS
-        cmd_takeSphoto();
+        cmd_takeSpiphoto();
         TimeEvent4 = millis();
       }else{
       }

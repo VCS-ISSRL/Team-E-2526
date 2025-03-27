@@ -38,6 +38,14 @@ Files Required to make a complete program -
 
 #include "Quest_Flight.h"
 #include "Quest_CLI.h"
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+// Setup a oneWire instance to communicate with any OneWire devices
+OneWire oneWire(IO2);
+
+// Pass our oneWire reference to Dallas Temperature sensor 
+DallasTemperature sensors(&oneWire);
 
 //thermister code
 int thermistorPin = A0;
@@ -45,7 +53,10 @@ double thermistorReading;
 double tempK;
 double tempC;
 double tempF;
+bool heatingStarted = false;
 bool heatingDone = false;
+bool pumpsRun = false;
+bool motorsOff = false;
 bool failsafe = true;
 
 //////////////////////////////////////////////////////////////////////////
@@ -54,7 +65,7 @@ bool failsafe = true;
 //  Fast clock --- 1 hour = 5 min = 1/12 of an  hour
 //     one millie -- 1ms
 //
-#define SpeedFactor 160    // = times faster
+#define SpeedFactor 60    // = times faster
 //
 //
 //////////////////////////////////////////////////////////////////////////
@@ -106,6 +117,7 @@ void Flying() {
   //   Here to set up flight conditions i/o pins, atod, and other special condition
   //   of your program
   Serial.begin(9600);
+  sensors.begin();
   //
   //
   //******************************************************************
@@ -156,49 +168,85 @@ void Flying() {
       dayCount++;
       dayCounter = millis();
     }
-    if ((millis() - TimeEvent1) > TimeEvent1_time) {  //make sure this runs only once
-      //TimeEvent1 = millis();                 //yes is time now reset TimeEvent1
-      //CODE GOES HERE
-        //Heating Function
-        digitalWrite(A1, HIGH); //heating
-        heatingDone = true;
-        cmd_takeSphoto();
-          //  Take a photo using the serial c329 camera and place file name in Queue
+    if (heatingStarted == false){
+      if ((millis() - TimeEvent1) > TimeEvent1_time) {  //make sure this runs only once
+        //TimeEvent1 = millis();                 //yes is time now reset TimeEvent1
+        //CODE GOES HERE
+          //Heating Function
+          digitalWrite(A1, HIGH); //heating
+          Serial.print("YOU ARE HEATING NOW");
+          heatingStarted = true;
+          cmd_takeSphoto();
+            //  Take a photo using the serial c329 camera and place file name in Queue
+      }
     }
     if(failsafe){
       failsafe_time = millis();
       failsafe = false;
     }
-    thermistorReading = analogRead(thermistorPin);
-    tempK = log(10000.0 / ((1024.0 / thermistorReading - 1)));
-    tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK)) * tempK);
-    tempC = tempK - 273.15;
-    Serial.println(tempF);
-    add2text(tempF, 0, 0);
-    //do we need a delay?
-    if((heatingDone && tempC >= 48) || (millis() - failsafe_time >= one_min * 30)){
-      digitalWrite(A1, LOW); //Heating off
-      digitalWrite(IO4, HIGH); //Start pump
-      TimeEvent2 = millis();
+
+
+    if (heatingStarted == true){
+      if (heatingDone == false){  
+          sensors.requestTemperatures(); 
+          Serial.print("Celsius temperature: ");
+          // Why "byIndex"? You can have more than one IC on the same bus. 0 refers to the first IC on the wire
+          Serial.print(sensors.getTempCByIndex(0)); 
+          Serial.print(" - Fahrenheit temperature: ");
+          Serial.println(sensors.getTempFByIndex(0));
+          Serial.println("what the hell is happening this is right before tempC");
+          add2text(sensors.getTempCByIndex(0), 0, 0);
+
+        if(tempC >= 48.0 || (millis() - failsafe_time >= one_min * 120)){
+          Serial.println("THIS IS TEMPERATURE");
+          Serial.println(tempC);
+          Serial.println(millis() - failsafe_time);
+          Serial.println("IS THIS MORE THAN 30 MINUTES SLASH 30 SECONDS???");
+          Serial.println(millis() - failsafe_time >= one_min * 30);
+
+          digitalWrite(A1, LOW); //Heating off
+          digitalWrite(IO4, HIGH); //Start pump
+          Serial.println("PUMPS PUMPS PUMPS PUMPS PUMPS PUMPS");
+          TimeEvent2 = millis();
+          heatingDone = true; 
+        }
+      }
+      if (heatingDone == true){
+        if (pumpsRun == false){
+          if ((millis() - TimeEvent2) > TimeEvent2_time){
+            digitalWrite(IO4, LOW); //turn off pump
+            Serial.println("PUMPS off off off off off off");
+
+            digitalWrite(IO5, HIGH); //Turn on LED
+            digitalWrite(IO1, HIGH); //Turn on Vibration motors
+            digitalWrite(IO6, HIGH); //Motor #2
+            Serial.println("MOTOR MOTOR MOTOR MOTOR MOTOR");
+
+            TimeEvent3 = millis();
+            pumpsRun = true;
+          }
+        }
+        if (pumpsRun == true){
+          if (motorsOff == false){
+            if ((millis() - TimeEvent3) > TimeEvent3_time){
+              digitalWrite(IO1, LOW);
+              digitalWrite(IO6, LOW);
+              Serial.println("MOTOR off off off off");
+              cmd_takeSpiphoto();
+              motorsOff = true;
+            }
+          }
+        }
+      }
     }
-    if ((millis() - TimeEvent2) > TimeEvent2_time){
-      digitalWrite(IO4, LOW); //turn off pump
-      digitalWrite(IO5, HIGH); //Turn on LED
-      digitalWrite(IO1, HIGH); //Turn on Vibration motors
-      digitalWrite(IO0, HIGH); //Motor #2
-      TimeEvent3 = millis();
-    }
-    if ((millis() - TimeEvent3) > TimeEvent3_time){
-      digitalWrite(IO1, LOW);
-      digitalWrite(IO0, LOW);
-      cmd_takeSpiphoto();
-  } 
+    //}
     if((millis() - TimeEvent4) > TimeEvent4_time){  //Remember to iantialize!!  (This is badly coded, should still work)
       if(true){//CHANGE THIS
         cmd_takeSpiphoto();
         TimeEvent4 = millis();
       }
-    }                                               //end of TimeEvent1_time
+    }   
+                                                //end of TimeEvent1_time
     if(millis() > 2736000000){
       break;
     }
@@ -221,7 +269,7 @@ void Flying() {
 //------------------------------------------------------------------------------
       DateTime now = rtc.now();                           //get the time time,don't know how long away
       currentunix = (now.unixtime());                     //get current unix time
-      Serial.print(currentunix); Serial.print(" ");      //testing print unix clock
+      //Serial.print(currentunix); Serial.print(" ");      //testing print unix clock
       uint32_t framdeltaunix = (currentunix - readlongFromfram(PreviousUnix)); //get delta sec of unix time
       uint32_t cumunix = readlongFromfram(CumUnix);       //Get cumulative unix mission clock
       writelongfram((cumunix + framdeltaunix), CumUnix);  //add and Save cumulative unix time Mission

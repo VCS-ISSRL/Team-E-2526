@@ -51,7 +51,6 @@ DallasTemperature sensors(&oneWire);
 int thermistorPin = A0;
 double thermistorReading;
 double tempK;
-double tempC;
 double tempF;
 bool heatingStarted = false;
 bool heatingDone = false;
@@ -197,9 +196,8 @@ void Flying() {
           Serial.println("what the hell is happening this is right before tempC");
           add2text(sensors.getTempCByIndex(0), 0, 0);
 
-        if(tempC >= 48.0 || (millis() - failsafe_time >= one_min * 120)){
+        if(sensors.getTempCByIndex(0) >= 48.0 || (millis() - failsafe_time >= one_min * 120)){ //GUYS THIS IS VERY SUSCEPTIBLE TO CHANGE
           Serial.println("THIS IS TEMPERATURE");
-          Serial.println(tempC);
           Serial.println(millis() - failsafe_time);
           Serial.println("IS THIS MORE THAN 30 MINUTES SLASH 30 SECONDS???");
           Serial.println(millis() - failsafe_time >= one_min * 30);
